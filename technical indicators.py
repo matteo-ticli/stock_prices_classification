@@ -81,36 +81,3 @@ def accumulation_distribution_oscillator(df, time_delta=9):
     df['AD'] = np.zeros((len(df), 1))
     for i in range(1, len(df)):
         df.at[i, 'AD'] = (df.iloc[i]['High'] - df.iloc[i-1]['Close'])/(df.iloc[i]['High'] - df.iloc[i]['Low'])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
