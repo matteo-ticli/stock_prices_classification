@@ -19,6 +19,7 @@ We are going to focus at first on the Nasdaq100. We are going to scrape each tra
         11. Conclusions
 """
 
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime as dt
@@ -26,20 +27,27 @@ import pandas_datareader.data as web
 import requests
 import time
 
-
 tickers = ['^NDX', '^GSPC', '^DJI', '^RUT', '^NYA', '^GDAXI', '^N225', '^FCHI', '^HSI', '000001.SS']
-## figure out ^FTSE
+tickers_name = ['NASDAQ', 'SP500', 'DJI', 'RUSSEL', 'NYSE', 'DAX', 'NIKKEI 225', 'CAC 40', 'HANG SENG', 'SSE']
+
+tensors_collector = dict()
 
 
-def get_data(tickers, start_date='1999-01-01', end_date=dt.today()):
-    ticker_dict = dict()
+def get_data(tickers, start_date='2000-01-01', end_date='2021-1-1'):
+    path = os.getcwd() + '/data/'
+    print(path)
     for idx, ticker in enumerate(tickers):
         try:
-            df_ticker = web.DataReader(ticker, 'yahoo', start_date, end_date)
-            ticker_dict[ticker] = df_ticker['Adj Close']
+            df_ticker = web.DataReader(ticker, 'yahoo', start_date, end_date).drop(labels=['Open', 'Volume', 'Adj Close'], axis=1)
+            df_ticker = df_ticker.reset_index().dropna()
+            df_ticker.to_csv(path+tickers_name[idx]+'.csv', index=False)
         except:
-            pass
-    df = pd.DataFrame(ticker_dict)
-    print(df)
-    return df
+            continue
 
+
+def create_tensor(df, time_delta=9):
+    pass
+
+
+def label_tensor(df):
+    pass
