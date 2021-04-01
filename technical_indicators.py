@@ -1,10 +1,7 @@
 import numpy as np
 import pandas as pd
 from ta import momentum, trend
-from datetime import datetime as dt
-import pandas_datareader.data as web
-import requests
-import time
+
 
 # We are going to define ten technical indicators that refer to day trading strategies.
 # We are going to rely, for some of these indicators, on the python library ta.
@@ -63,12 +60,12 @@ def moving_average_convergence_divergence(df, time_delta=9, time_delta_ema_1=12,
         df.at[i, 'MACD'] = df.iloc[i-1]['MACD'] + ((2/(time_delta+1)) * (ema_diff - df.iloc[i-1]['MACD']))
 
 
-def relative_strenght_index(df, time_delta=9):
+def relative_strength_index(df, time_delta=9):
     rsi = momentum.RSIIndicator(close=df['Close'], window=time_delta)
     df['RSI'] = rsi.rsi()
 
 
-def williams_r(df, time_delta = 9):
+def williams_r(df, time_delta=9):
     df['W %R'] = momentum.williams_r(high=df['High'], low=df['Low'], close=df['Close'], lbp=time_delta)
 
 
@@ -77,7 +74,7 @@ def commodity_channel_index(df, time_delta=9):
     df['CCI'] = cci.cci()
 
 
-def accumulation_distribution_oscillator(df, time_delta=9):
+def accumulation_distribution_oscillator(df):
     df['AD'] = np.zeros((len(df), 1))
     for i in range(1, len(df)):
         df.at[i, 'AD'] = (df.iloc[i]['High'] - df.iloc[i-1]['Close'])/(df.iloc[i]['High'] - df.iloc[i]['Low'])
