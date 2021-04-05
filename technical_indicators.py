@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from ta import momentum, trend
+import ta
 
 
 # We are going to define ten technical indicators that refer to day trading strategies.
@@ -8,14 +9,14 @@ from ta import momentum, trend
 # We are not using the result of the technical indicators but rather a deterministic trend signal (0 or 1)
 # The value of time_delta = 9 due to the fact that wer want to exploit a daily strategy
 
-# df = pd.read_csv('/Users/mticli/Documents/BOCCONI/FINAL PROJECT/CNN_LSTM-stock-prices-prediction/data/NASDAQ.csv')
+df = pd.read_csv('/Users/mticli/Documents/BOCCONI/FINAL PROJECT/CNN_LSTM-stock-prices-prediction/data/NASDAQ.csv')
 
 
 def simple_moving_average(df, time_delta=9):
     df['SMA'] = np.zeros((len(df), 1))
     df['SMA'] = df['Close'].rolling(time_delta).mean()
 
-## da guardare, sistemare i weights
+
 def weighted_moving_average(df, time_delta=9):
     wma = trend.WMAIndicator(close=df['Close'], window=time_delta)
     df['WMA'] = wma.wma()
@@ -44,7 +45,7 @@ def stochastic_d(df, time_delta=9):
     df['D %'] = df['K %'].rolling(time_delta).mean()
 
 
-def exponential_moving_average(df, time_delta):
+def exponential_moving_average(df, time_delta=9):
     EMA = 'EMA' + str(time_delta)
     df[EMA] = np.zeros((len(df), 1))
     for i in range(1, len(df)):
@@ -61,20 +62,36 @@ def moving_average_convergence_divergence(df, time_delta=9, time_delta_ema_1=12,
 
 
 def relative_strength_index(df, time_delta=9):
-    rsi = momentum.RSIIndicator(close=df['Close'], window=time_delta)
+    rsi = ta.momentum.RSIIndicator(close=df['Close'], window=time_delta)
     df['RSI'] = rsi.rsi()
 
 
 def williams_r(df, time_delta=9):
-    df['W %R'] = momentum.williams_r(high=df['High'], low=df['Low'], close=df['Close'], lbp=time_delta)
+    df['W %R'] = ta.momentum.williams_r(high=df['High'], low=df['Low'], close=df['Close'], lbp=time_delta)
 
 
 def commodity_channel_index(df, time_delta=9):
-    cci = trend.CCIIndicator(high=df['High'], low=df['Low'], close=df['Close'], window=time_delta)
+    cci = ta.trend.CCIIndicator(high=df['High'], low=df['Low'], close=df['Close'], window=time_delta)
     df['CCI'] = cci.cci()
 
 
 def accumulation_distribution_oscillator(df):
     df['AD'] = np.zeros((len(df), 1))
     for i in range(1, len(df)):
-        df.at[i, 'AD'] = (df.iloc[i]['High'] - df.iloc[i-1]['Close'])/(df.iloc[i]['High'] - df.iloc[i]['Low'])
+        try:
+            df.at[i, 'AD'] = (df.iloc[i]['High'] - df.iloc[i-1]['Close'])/(df.iloc[i]['High'] - df.iloc[i]['Low'])
+        except:
+            df.at[i, 'AD'] = 0.0
+
+
+simple_moving_average(df)
+weighted_moving_average(df)
+momentum(df)
+stochastic_k(df)
+stochastic_d(df)
+exponential_moving_average(df)
+moving_average_convergence_divergence(df)
+relative_strength_index(df)
+williams_r(df)
+commodity_channel_index(df)
+accumulation_distribution_oscillator(df)

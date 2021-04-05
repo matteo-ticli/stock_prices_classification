@@ -25,11 +25,14 @@ import pandas as pd
 import pandas_datareader.data as web
 import technical_indicators as ti
 
+
 tickers = ['^NDX', '^GSPC', '^DJI', '^RUT', '^NYA', '^GDAXI', '^N225', '^FCHI', '^HSI', '000001.SS']
 tickers_name = ['NASDAQ', 'SP500', 'DJI', 'RUSSEL', 'NYSE', 'DAX', 'NIKKEI 225', 'CAC 40', 'HANG SENG', 'SSE']
 main_asset = 'NASDAQ'
 time_delta = 10
 tech_indicators = 10
+
+df_ticker['Return'] = df_ticker[:, 'Close'].diff()/df_ticker[:, 'Close']
 
 def get_data(tickers, start_date='2000-01-01', end_date='2021-1-1'):
     path = os.getcwd() + '/data/'
@@ -61,6 +64,8 @@ def create_dfs(directory=(os.getcwd()+'/data/')):
 
         df.to_csv(path, index=False)
 
+create_dfs()
+
 
 def load_assets_dfs(directory=(os.getcwd()+'/data/'), ma=main_asset):
     dfs_dict = dict()
@@ -74,36 +79,38 @@ def load_assets_dfs(directory=(os.getcwd()+'/data/'), ma=main_asset):
 
     return dfs_dict
 
-
-def find_correlations(dfs_dict, ma=main_asset):
-    for asset in list(dfs_dict.keys()):
-        if asset == ma:
-            continue
-        for day in range(len(dfs_dict[ma])):
-            dfs_dict[asset]['corr'] = \
-                dfs_dict[ma].loc[day-time_delta:day, 'Close'].corr(dfs_dict[asset].loc[day-time_delta:day, 'Close'])
-
-    return dfs_dict
+dfs_dict = load_assets_dfs()
 
 
-def order_correlated_assets(dfs_dict, sub_day, ma=main_asset):
-    unordered_corr = dict()
-    for asset in list(dfs_dict.keys()):
-        if asset == ma:
-            continue
-        unordered_corr[asset] = dfs_dict.iloc[sub_day]['corr']
-    ordered_corr = dict(sorted(unordered_corr.items(), key=lambda item: item[1]))
+def calculate_returns(dfs_dict):
+    for i, asset in enumerate(dfs_dict):
+        dfs_dict[asset]['Return'] = dfs_dict[asset]['Close'].diff()/dfs_dict[asset]['Close']
 
-    return list(ordered_corr.keys())
+
+def order_correlated_assets(dfs_dict, day, ma=main_asset):
+    arr = np.zeros((time_delta+1, len(dfs_dict)))
+    list_asset = list()
+    for i, asset in enumerate(list(dfs_dict.keys())):
+        arr[:, i] = dfs_dict[asset].loc[day-time_delta:day, 'Return']
+        list_asset.append(asset)
+
+    df = pd.DataFrame(data=arr, columns=list_asset)
+
+    corr_matrix = df.corr()
+
+    corr_matrix_ordered = corr_matrix.sort_values(by=['NASDAQ'])
+    indexes = list(corr_matrix_ordered.index)
+    indexes.reverse()
+    return indexes
 
 
 def create_tensor(dfs_dict, ma=main_asset):
     tensor = dict()
-    for day in range(len(dfs_dict[ma])):
+    for day in range(20, len(dfs_dict[ma])):
+        indexes = order_correlated_assets(dfs_dict, day)
         z, y, x = time_delta, tech_indicators, len(dfs_dict)
         pivot = np.empty((z, y, x))
         for sub_day in range(time_delta, 0, -1):
-            ordered_corr = order_correlated_assets(dfs_dict, sub_day, ma)
             for item in ordered_corr:
                 pass
 
