@@ -33,19 +33,19 @@ tech_indicators = 10
 
 
 def get_data(tickers, start_date='2000-01-01', end_date='2021-1-1'):
-    directory = os.getcwd() + '/data/'
+    path = os.getcwd() + '/data/'
+    print(path)
     for idx, ticker in enumerate(tickers):
         try:
             df_ticker = web.DataReader(ticker, 'yahoo', start_date, end_date).drop(
                 labels=['Open', 'Volume', 'Adj Close'], axis=1)
             df_ticker = df_ticker.reset_index().dropna()
-            df_ticker.to_csv(directory + tickers_name[idx] + '.csv', index=False)
-            print('Downloaded at: '+directory + tickers_name[idx] + '.csv')
+            df_ticker.to_csv(path + tickers_name[idx] + '.csv', index=False)
         except:
             continue
 
 
-def create_csv(directory=(os.getcwd() + '/data/')):
+def create_dfs(directory=(os.getcwd() + '/data/')):
     for filename in os.listdir(directory):
         path = os.path.join(directory, filename)
         df = pd.read_csv(path)
@@ -64,7 +64,7 @@ def create_csv(directory=(os.getcwd() + '/data/')):
         df.to_csv(path, index=False)
 
 
-def load_assets(directory=(os.getcwd() + '/data/'), ma=main_asset):
+def load_assets_dfs(directory=(os.getcwd() + '/data/'), ma=main_asset):
     dfs_dict = dict()
     dfs_dict[ma] = pd.read_csv(os.path.join(directory, ma + '.csv'))
 
@@ -73,12 +73,11 @@ def load_assets(directory=(os.getcwd() + '/data/'), ma=main_asset):
             continue
         filename_split = filename.split('.', 1)
         dfs_dict[filename_split[0]] = pd.read_csv(os.path.join(directory, filename))
-
     return dfs_dict
 
 
 def calculate_returns(dfs_dict):
-    for asset in dfs_dict:
+    for i, asset in enumerate(dfs_dict):
         dfs_dict[asset]['Return'] = dfs_dict[asset]['Close'].diff() / dfs_dict[asset]['Close']
 
 
@@ -93,7 +92,6 @@ def order_correlated_assets(dfs_dict, day, ma=main_asset):
     corr_matrix_ordered = corr_matrix.sort_values(by=[ma])
     ordered_indexes = list(corr_matrix_ordered.index)
     ordered_indexes.reverse()
-
     return ordered_indexes
 
 
@@ -102,17 +100,16 @@ def label_tensor(dfs_dict, day, ma=main_asset):
         label = 1
     else:
         label = 0
-
     return label
 
 
-def create_tensor(dfs_dict, start_date_num=50, end_date_num=100, ma=main_asset):
+def create_tensor(dfs_dict, start_date=50, end_date=100, ma=main_asset):
     tensor = dict()
-    for day in range(start_date_num, end_date_num):
+    for day in range(start_date, end_date):
         z, y, x = time_delta, tech_indicators, len(dfs_dict)
         pivot = np.zeros((z, y, x))
-        ordered_indexes = order_correlated_assets(dfs_dict, day)
         label = label_tensor(dfs_dict, day, ma)
+        ordered_indexes = order_correlated_assets(dfs_dict, day)
         for i, subday in enumerate(range(day - time_delta, day)):
             for j, asset in enumerate(ordered_indexes):
 
@@ -153,11 +150,11 @@ def create_tensor(dfs_dict, start_date_num=50, end_date_num=100, ma=main_asset):
                     pivot[i, 5, j] = 0
 
                 # RSI
-                if dfs_dict[asset].loc[subday, 'RSI'] <= 30 or\
-                        dfs_dict[asset].loc[subday, 'RSI'] > dfs_dict[asset].loc[subday - 1, 'RSI']:
+                if dfs_dict[asset].loc[subday, 'RSI'] <= 30 or dfs_dict[asset].loc[subday, 'RSI'] > dfs_dict[asset].loc[
+                    subday - 1, 'RSI']:
                     pivot[i, 6, j] = 1
-                if dfs_dict[asset].loc[subday, 'RSI'] >= 70 or \
-                        dfs_dict[asset].loc[subday, 'RSI'] <= dfs_dict[asset].loc[subday - 1, 'RSI']:
+                if dfs_dict[asset].loc[subday, 'RSI'] >= 70 or dfs_dict[asset].loc[subday, 'RSI'] <= \
+                        dfs_dict[asset].loc[subday - 1, 'RSI']:
                     pivot[i, 6, j] = 0
 
                 # W %R
@@ -181,5 +178,4 @@ def create_tensor(dfs_dict, start_date_num=50, end_date_num=100, ma=main_asset):
                     pivot[i, 9, j] = 0
 
         tensor.update({day: (pivot, label)})
-
     return tensor
