@@ -103,9 +103,9 @@ def label_tensor(dfs_dict, day, ma=main_asset):
     return label
 
 
-def create_tensor(dfs_dict, start_date=50, end_date=100, ma=main_asset):
+def create_tensor(dfs_dict, start_date_num=50, end_date_num=100, ma=main_asset):
     tensor = dict()
-    for day in range(start_date, end_date):
+    for day in range(start_date_num, end_date_num):
         z, y, x = time_delta, tech_indicators, len(dfs_dict)
         pivot = np.zeros((z, y, x))
         label = label_tensor(dfs_dict, day, ma)
