@@ -3,13 +3,14 @@ import pandas as pd
 from ta import momentum, trend
 import ta
 
+"""
+We are going to define ten technical indicators that refer to day trading strategies.
+We are going to rely, for some of these indicators, on the python library ta.
+We are not using the result of the technical indicators but rather a deterministic trend signal (0 or 1)
+The value of time_delta = 9 due to the fact that wer want to exploit a daily strategy
+"""
 
-# We are going to define ten technical indicators that refer to day trading strategies.
-# We are going to rely, for some of these indicators, on the python library ta.
-# We are not using the result of the technical indicators but rather a deterministic trend signal (0 or 1)
-# The value of time_delta = 9 due to the fact that wer want to exploit a daily strategy
-
-df = pd.read_csv('/Users/mticli/Documents/BOCCONI/FINAL PROJECT/CNN_LSTM-stock-prices-prediction/data/NASDAQ.csv')
+# df = pd.read_csv('/Users/mticli/Documents/BOCCONI/FINAL PROJECT/CNN_LSTM-stock-prices-prediction/data/NASDAQ.csv')
 
 
 def simple_moving_average(df, time_delta=9):
@@ -84,14 +85,14 @@ def accumulation_distribution_oscillator(df):
             df.at[i, 'AD'] = 0.0
 
 
-simple_moving_average(df)
-weighted_moving_average(df)
-momentum(df)
-stochastic_k(df)
-stochastic_d(df)
-exponential_moving_average(df)
-moving_average_convergence_divergence(df)
-relative_strength_index(df)
-williams_r(df)
-commodity_channel_index(df)
-accumulation_distribution_oscillator(df)
+# simple_moving_average(df)
+# weighted_moving_average(df)
+# momentum(df)
+# stochastic_k(df)
+# stochastic_d(df)
+# exponential_moving_average(df)
+# moving_average_convergence_divergence(df)
+# relative_strength_index(df)
+# williams_r(df)
+# commodity_channel_index(df)
+# accumulation_distribution_oscillator(df)
