@@ -19,6 +19,7 @@ We are going to focus at first on the Nasdaq100. We are going to scrape each tra
         11. Conclusions
 """
 
+
 import os
 import numpy as np
 import pandas as pd
@@ -102,115 +103,128 @@ def label_tensor(dfs_dict, ma, day):
 
 
 def create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=50, end_date_num=100):
-    tensor = dict()
-    for day in range(start_date_num, end_date_num):
-        z, y, x = time_delta, tech_indicators, len(dfs_dict)
-        pivot = np.zeros((z, y, x))
+
+    t, z, y, x = end_date_num-start_date_num, time_delta, tech_indicators, len(dfs_dict)
+    tensor = np.zeros((t, z, y, x))
+    labels = np.zeros((t, ))
+
+    for idx, day in enumerate(range(start_date_num, end_date_num)):
 
         label = label_tensor(dfs_dict, ma, day)
         ordered_indexes = order_correlated_assets(dfs_dict, day, time_delta)
 
         for i, subday in enumerate(range(day - time_delta, day)):
+
             for j, asset in enumerate(ordered_indexes):
 
                 # SMA
                 if dfs_dict[asset].loc[subday, 'Close'] > dfs_dict[asset].loc[subday, 'SMA']:
-                    pivot[i, 0, j] = 1
+                    tensor[idx, i, 0, j] = 1
                 if dfs_dict[asset].loc[subday, 'Close'] <= dfs_dict[asset].loc[subday, 'SMA']:
-                    pivot[i, 0, j] = 0
+                    tensor[idx, i, 0, j] = 0
 
                 # WMA
                 if dfs_dict[asset].loc[subday, 'Close'] > dfs_dict[asset].loc[subday, 'WMA']:
-                    pivot[i, 1, j] = 1
+                    tensor[idx, i, 1, j] = 1
                 if dfs_dict[asset].loc[subday, 'Close'] <= dfs_dict[asset].loc[subday, 'WMA']:
-                    pivot[i, 1, j] = 0
+                    tensor[idx, i, 1, j] = 0
 
                 # Mom
                 if dfs_dict[asset].loc[subday, 'MOM'] > 0:
-                    pivot[i, 2, j] = 1
+                    tensor[idx, i, 2, j] = 1
                 if dfs_dict[asset].loc[subday, 'MOM'] <= 0:
-                    pivot[i, 2, j] = 0
+                    tensor[idx, i, 2, j] = 0
 
                 # K%
                 if dfs_dict[asset].loc[subday, 'K %'] > dfs_dict[asset].loc[subday - 1, 'K %']:
-                    pivot[i, 3, j] = 1
+                    tensor[idx, i, 3, j] = 1
                 if dfs_dict[asset].loc[subday, 'K %'] <= dfs_dict[asset].loc[subday - 1, 'K %']:
-                    pivot[i, 3, j] = 0
+                    tensor[idx, i, 3, j] = 0
 
                 # D%
                 if dfs_dict[asset].loc[subday, 'D %'] > dfs_dict[asset].loc[subday - 1, 'D %']:
-                    pivot[i, 4, j] = 1
+                    tensor[idx, i, 4, j] = 1
                 if dfs_dict[asset].loc[subday, 'D %'] <= dfs_dict[asset].loc[subday - 1, 'D %']:
-                    pivot[i, 4, j] = 0
+                    tensor[idx, i, 4, j] = 0
 
                 # MACD
                 if dfs_dict[asset].loc[subday, 'MACD'] > dfs_dict[asset].loc[subday - 1, 'MACD']:
-                    pivot[i, 5, j] = 1
+                    tensor[idx, i, 5, j] = 1
                 if dfs_dict[asset].loc[subday, 'MACD'] <= dfs_dict[asset].loc[subday - 1, 'MACD']:
-                    pivot[i, 5, j] = 0
+                    tensor[idx, i, 5, j] = 0
 
                 # RSI
                 if dfs_dict[asset].loc[subday, 'RSI'] <= 30 or dfs_dict[asset].loc[subday, 'RSI'] > dfs_dict[asset].loc[
                     subday - 1, 'RSI']:
-                    pivot[i, 6, j] = 1
+                    tensor[idx, i, 6, j] = 1
                 if dfs_dict[asset].loc[subday, 'RSI'] >= 70 or dfs_dict[asset].loc[subday, 'RSI'] <= \
                         dfs_dict[asset].loc[subday - 1, 'RSI']:
-                    pivot[i, 6, j] = 0
+                    tensor[idx, i, 6, j] = 0
 
                 # W %R
                 if dfs_dict[asset].loc[subday, 'W %R'] > dfs_dict[asset].loc[subday - 1, 'W %R']:
-                    pivot[i, 7, j] = 1
+                    tensor[idx, i, 7, j] = 1
                 if dfs_dict[asset].loc[subday, 'W %R'] <= dfs_dict[asset].loc[subday - 1, 'W %R']:
-                    pivot[i, 7, j] = 0
+                    tensor[idx, i, 7, j] = 0
 
                 # CCI
                 if dfs_dict[asset].loc[subday, 'CCI'] < -200 or dfs_dict[asset].loc[subday, 'CCI'] > \
                         dfs_dict[asset].loc[subday - 1, 'CCI']:
-                    pivot[i, 8, j] = 1
+                    tensor[idx, i, 8, j] = 1
                 if dfs_dict[asset].loc[subday, 'CCI'] > 200 or dfs_dict[asset].loc[subday, 'RSI'] <= \
                         dfs_dict[asset].loc[subday - 1, 'RSI']:
-                    pivot[i, 8, j] = 0
+                    tensor[idx, i, 8, j] = 0
 
                 # AD
                 if dfs_dict[asset].loc[subday, 'AD'] > dfs_dict[asset].loc[subday - 1, 'AD']:
-                    pivot[i, 9, j] = 1
+                    tensor[idx, i, 9, j] = 1
                 if dfs_dict[asset].loc[subday, 'AD'] <= dfs_dict[asset].loc[subday - 1, 'AD']:
-                    pivot[i, 9, j] = 0
+                    tensor[idx, i, 9, j] = 0
 
-        tensor.update({day: (pivot, label)})
-    return tensor
+        labels[idx] = label
+
+    return tensor, labels
 
 
-def execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma, start_date, end_date, start_tensor, end_tensor):
+def execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma,
+                      start_date, end_date, start_tensor, end_tensor, tensor_name, labels_name):
+
     t0 = time.time()
 
     get_data(directory, tickers, tickers_name, start_date=start_date, end_date=end_date)
     create_csv(directory)
     dfs_dict = load_assets_dfs(directory, ma)
     dfs_dict = calculate_returns(dfs_dict)
-    tensor = create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=start_tensor, end_date_num=end_tensor)
+    tensor, labels = create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=start_tensor, end_date_num=end_tensor)
+
+    np.save(tensor_name, tensor)
+    np.save(labels_name, labels)
 
     t1 = time.time()
     delta_t = t1 - t0
     print(f"The data preparation process lasted: {delta_t} seconds")
 
-    return tensor
+    return tensor, labels
 
 
 ### execute this code with these parameters ###
 
+directory = os.getcwd() + '/data/'
 
 tickers = ['^NDX', '^GSPC', '^DJI', '^RUT', '^NYA', '^GDAXI', '^N225', '^FCHI', '^HSI', '000001.SS']
 tickers_name = ['NASDAQ', 'SP500', 'DJI', 'RUSSEL', 'NYSE', 'DAX', 'NIKKEI 225', 'CAC 40', 'HANG SENG', 'SSE']
 ma = 'NASDAQ'
 time_delta = 10
 tech_indicators = 10
-directory = os.getcwd() + '/dataNEW/'
 
-start_date='2000-01-01'
-end_date='2021-01-01'
-start_tensor = 1000 ##
-end_tensor   = 2000 ##
+start_date = '2000-01-01'
+end_date = '2021-01-01'
+start_tensor = 1000
+end_tensor = 2000
+
+tensor_name = directory + '/tensor_1000_2000.npy'
+labels_name = directory + '/labels_1000_2000.npy'
 
 
-tensor = execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma, start_date, end_date, start_tensor, end_tensor)
+tensor, labels = execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma,
+                                   start_date, end_date, start_tensor, end_tensor, tensor_name, labels_name)

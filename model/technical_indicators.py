@@ -1,8 +1,3 @@
-import numpy as np
-import pandas as pd
-from ta import momentum, trend
-import ta
-
 """
 We are going to define ten technical indicators that refer to day trading strategies.
 We are going to rely, for some of these indicators, on the python library ta.
@@ -10,7 +5,10 @@ We are not using the result of the technical indicators but rather a determinist
 The value of time_delta = 9 due to the fact that wer want to exploit a daily strategy
 """
 
-# df = pd.read_csv('/Users/mticli/Documents/BOCCONI/FINAL PROJECT/CNN_LSTM-stock-prices-prediction/data/NASDAQ.csv')
+
+import numpy as np
+from ta import momentum, trend
+import ta
 
 
 def simple_moving_average(df, time_delta=9):
