@@ -13,7 +13,7 @@ import keras
 from keras.utils import to_categorical
 from keras.models import Sequential,Input,Model
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv3D, MaxPooling3D, MaxPool3D, GlobalAveragePooling3D
+from keras.layers import Conv3D, MaxPooling3D, MaxPool3D, GlobalAveragePooling3D, Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 import keras.backend as K
@@ -22,36 +22,32 @@ import keras.backend as K
 directory = os.getcwd() + '/data'
 
 tensor = np.load(directory+'/tensor_1000_2000.npy')
-labels = np.load(directory+'/tensor_1000_2000.npy')
+labels = np.load(directory+'/labels_1000_2000.npy')
 
 x_train, x_test, y_train, y_test = train_test_split(tensor, labels, test_size=0.20, random_state=42)
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
+x_train = np.reshape(x_train, (800, 1, 10, 10, 10))
 y_train_one_hot = to_categorical(y_train)
 y_test_one_hot = to_categorical(y_test)
 
-x_train, x_val, y_train, y_val = train_test_split(x_train, y_train_one_hot, test_size=0.20, random_state=1)
-
-
-input_shape = (32, 10, 10, 10, 1)
+input_shape = (1, 10, 10, 10)
 batch_size = 32
 epochs = 24
 num_filters = 10
 
 ## MODEL
 model = Sequential()
-model.add(Conv3D(num_filters, kernel_size=(3, 3, 3), activation='relu', data_format='channels_first', kernel_initializer='he_uniform', input_shape=input_shape))
-model.add(MaxPooling3D(pool_size=(2, 2, 2), padding='same'))
+model.add(Conv3D(10, kernel_size=(3, 3, 3), activation='relu', data_format='channels_first', kernel_initializer='he_uniform', batch_input_shape=input_shape))
+model.add(MaxPooling3D(pool_size=(2, 2, 2), data_format='channels_last', padding='same')) ## da non fare
 model.add(BatchNormalization(center=True, scale=True))
 model.add(Dropout(0.5))
-model.add(Conv3D(num_filters, kernel_size=(3, 3, 3), activation='relu', data_format='channels_first', kernel_initializer='he_uniform'))
-model.add(MaxPooling3D(pool_size=(2, 2, 2), padding='same'))
+model.add(Conv3D(10, kernel_size=(1, 1, 1), activation='relu', data_format='channels_first', kernel_initializer='he_uniform'))
+model.add(MaxPooling3D(pool_size=(2, 2, 2), data_format='channels_first', padding='same'))
 model.add(BatchNormalization(center=True, scale=True))
 model.add(Dropout(0.5))
 model.add(Flatten())
 model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
 model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
-model.add(Dense(10, activation='softmax'))
+model.add(Dense(2, activation='softmax'))
 
 # Compile the model
 model.compile(loss='categorical_crossentropy',
@@ -62,10 +58,8 @@ model.summary()
 # Fit data to model
 
 history = model.fit(x_train, y_train,
-            batch_size=batch_size,
-            epochs=epochs,
-            verbose=1,
-            validation_split=0.3)
+                    batch_size=batch_size,
+                    epochs=epochs)
 
 
 def auc(y_true, y_pred):
