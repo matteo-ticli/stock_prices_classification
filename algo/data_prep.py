@@ -81,10 +81,10 @@ def calculate_returns(dfs_dict):
 
 
 def order_correlated_assets(dfs_dict, day, time_delta):
-    arr = np.zeros((time_delta + 1, len(dfs_dict)))
+    arr = np.zeros((time_delta, len(dfs_dict)))
     list_asset = list()
     for i, asset in enumerate(list(dfs_dict.keys())):
-        arr[:, i] = dfs_dict[asset].loc[day - time_delta:day, 'Return']
+        arr[:, i] = dfs_dict[asset].loc[day - time_delta + 1 :day, 'Return']
         list_asset.append(asset)
     df = pd.DataFrame(data=arr, columns=list_asset)
     corr_matrix = df.corr()
@@ -219,12 +219,11 @@ tech_indicators = 10
 
 start_date = '2000-01-01'
 end_date = '2021-01-01'
-start_tensor = 1000
-end_tensor = 2000
+start_tensor = 50
+end_tensor = 5200
 
-tensor_name = directory + '/tensor_1000_2000.npy'
-labels_name = directory + '/labels_1000_2000.npy'
-
+tensor_name = directory + '/' + ma + '/tensor.npy'
+labels_name = directory + '/' + ma + '/labels.npy'
 
 tensor, labels = execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma,
                                    start_date, end_date, start_tensor, end_tensor, tensor_name, labels_name)
