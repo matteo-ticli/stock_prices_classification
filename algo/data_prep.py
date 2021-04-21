@@ -24,6 +24,7 @@ import os
 import numpy as np
 import pandas as pd
 import pandas_datareader.data as web
+import datetime as dt
 import technical_indicators as ti
 import time
 
@@ -33,11 +34,10 @@ def get_data(directory, tickers, tickers_name, start_date='2000-01-01', end_date
         os.makedirs(directory)
     for idx, ticker in enumerate(tickers):
         try:
-            df_ticker = web.DataReader(ticker, 'yahoo', start_date, end_date).drop(
-                labels=['Open', 'Volume', 'Adj Close'], axis=1)
+            df_ticker = web.DataReader(ticker, 'yahoo', start_date, end_date).drop(labels=['Open', 'Volume', 'Adj Close'], axis=1)
             df_ticker = df_ticker.reset_index().dropna()
-            df_ticker.to_csv(directory + tickers_name[idx] + '.csv', index=False)
-            print(directory+tickers_name[idx])
+            df_ticker.to_csv(directory + '/' + tickers_name[idx] + '.csv', index=False)
+            print(directory + '/' + tickers_name[idx])
         except:
             print(idx)
             continue
@@ -62,15 +62,40 @@ def create_csv(directory):
         df.to_csv(path, index=False)
 
 
-def load_assets_dfs(directory, ma):
+def load_assets_dfs(directory, main_asset):
     dfs_dict = dict()
-    dfs_dict[ma] = pd.read_csv(os.path.join(directory, ma + '.csv'))
+    dfs_dict[main_asset] = pd.read_csv(os.path.join(directory, main_asset + '.csv'))
 
     for filename in os.listdir(directory):
-        if filename == ma + '.csv':
+        if filename == main_asset + '.csv':
             continue
         filename_split = filename.split('.', 1)
         dfs_dict[filename_split[0]] = pd.read_csv(os.path.join(directory, filename))
+
+    ## clean rows that do not share same date
+    start_date = dt.date(year=2000, month=1, day=1)
+    end_date = dt.date(year=2021, month=1, day=1)
+    current_date = start_date
+
+    while current_date <= end_date:
+
+        idx_list = list()
+        for asset in dfs_dict.keys():
+            df = dfs_dict[asset]
+            idx = df.index[df['Date'] == current_date.isoformat()].to_list()
+            if len(idx) != 0:
+                idx_list.append(idx)
+
+        if len(idx_list) != len(dfs_dict) and len(idx_list) != 0:
+            for asset in dfs_dict.keys():
+                df = dfs_dict[asset]
+                idx = df.index[df['Date'] == current_date.isoformat()].to_list()
+                if len(idx) != 0:
+                    dfs_dict[asset].drop(labels=idx[0], axis=0, inplace=True)
+                    dfs_dict[asset].reset_index(drop=True, inplace=True)
+
+        current_date += dt.timedelta(days=1)
+
     return dfs_dict
 
 
@@ -88,21 +113,21 @@ def order_correlated_assets(dfs_dict, day, time_delta):
         list_asset.append(asset)
     df = pd.DataFrame(data=arr, columns=list_asset)
     corr_matrix = df.corr()
-    corr_matrix_ordered = corr_matrix.sort_values(by=[ma])
+    corr_matrix_ordered = corr_matrix.sort_values(by=[main_asset])
     ordered_indexes = list(corr_matrix_ordered.index)
     ordered_indexes.reverse()
     return ordered_indexes
 
 
-def label_tensor(dfs_dict, ma, day):
-    if dfs_dict[ma].loc[day, 'Close'] < dfs_dict[ma].loc[day + 1, 'Close']:
+def label_tensor(dfs_dict, main_asset, day):
+    if dfs_dict[main_asset].loc[day, 'Close'] < dfs_dict[main_asset].loc[day + 1, 'Close']:
         label = 1
     else:
         label = 0
     return label
 
 
-def create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=50, end_date_num=100):
+def create_tensor(dfs_dict, main_asset, time_delta, tech_indicators, start_date_num=50, end_date_num=100):
 
     t, z, y, x = end_date_num-start_date_num, time_delta, tech_indicators, len(dfs_dict)
     tensor = np.zeros((t, z, y, x))
@@ -110,7 +135,7 @@ def create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=50, 
 
     for idx, day in enumerate(range(start_date_num, end_date_num)):
 
-        label = label_tensor(dfs_dict, ma, day)
+        label = label_tensor(dfs_dict, main_asset, day)
         ordered_indexes = order_correlated_assets(dfs_dict, day, time_delta)
 
         for i, subday in enumerate(range(day - time_delta, day)):
@@ -186,16 +211,16 @@ def create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=50, 
     return tensor, labels
 
 
-def execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma,
+def execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, main_asset,
                       start_date, end_date, start_tensor, end_tensor, tensor_name, labels_name):
 
     t0 = time.time()
 
     get_data(directory, tickers, tickers_name, start_date=start_date, end_date=end_date)
     create_csv(directory)
-    dfs_dict = load_assets_dfs(directory, ma)
+    dfs_dict = load_assets_dfs(directory, main_asset)
     dfs_dict = calculate_returns(dfs_dict)
-    tensor, labels = create_tensor(dfs_dict, ma, time_delta, tech_indicators, start_date_num=start_tensor, end_date_num=end_tensor)
+    tensor, labels = create_tensor(dfs_dict, main_asset, time_delta, tech_indicators, start_date_num=start_tensor, end_date_num=end_tensor)
 
     np.save(tensor_name, tensor)
     np.save(labels_name, labels)
@@ -209,21 +234,21 @@ def execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_n
 
 ### execute this code with these parameters ###
 
-directory = os.getcwd() + '/data/'
+directory = os.getcwd() + '/data'
 
 tickers = ['^NDX', '^GSPC', '^DJI', '^RUT', '^NYA', '^GDAXI', '^N225', '^FCHI', '^HSI', '000001.SS']
 tickers_name = ['NASDAQ', 'SP500', 'DJI', 'RUSSEL', 'NYSE', 'DAX', 'NIKKEI 225', 'CAC 40', 'HANG SENG', 'SSE']
-ma = 'NASDAQ'
+main_asset = 'NASDAQ'
 time_delta = 10
 tech_indicators = 10
 
 start_date = '2000-01-01'
 end_date = '2021-01-01'
-start_tensor = 50
-end_tensor = 5200
+start_date_num = 50
+end_date_num = 5200
 
-tensor_name = directory + '/' + ma + '/tensor.npy'
-labels_name = directory + '/' + ma + '/labels.npy'
+tensor_name = directory + '/' + main_asset + '/tensor.npy'
+labels_name = directory + '/' + main_asset + '/labels.npy'
 
-tensor, labels = execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, ma,
-                                   start_date, end_date, start_tensor, end_tensor, tensor_name, labels_name)
+tensor, labels = execute_data_prep(directory, time_delta, tech_indicators, tickers, tickers_name, main_asset,
+                                   start_date, end_date, start_date_num, end_date_num, tensor_name, labels_name)
